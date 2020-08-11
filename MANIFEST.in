@@ -1,0 +1,6 @@
+include LICENSE
+include dircompare/deps/*
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
+recursive-exclude * *.pyo
+prune test*
