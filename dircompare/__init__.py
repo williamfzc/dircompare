@@ -36,6 +36,7 @@ import os
 from collections import namedtuple
 import pathlib
 import tempfile
+import typing
 
 DEP_DIR = pathlib.Path(__file__).parent / "deps"
 TEMPLATE_HTML = DEP_DIR / "template.html"
@@ -45,6 +46,9 @@ DIFF_CSS = DEP_DIR / "diff.css"
 RESET_CSS = DEP_DIR / "reset.css"
 CODEFORMAT_CSS = DEP_DIR / "codeformats" / "xcode.css"
 
+# types
+TYPE_PATH = typing.Union[str, pathlib.Path]
+
 
 def _load_template() -> Template:
     with open(TEMPLATE_HTML, encoding="utf-8") as f:
@@ -52,7 +56,13 @@ def _load_template() -> Template:
     return Template(content)
 
 
-def compare(dir1, dir2, coverage_xml=None) -> str:
+def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None) -> str:
+    if isinstance(dir1, str):
+        dir1 = pathlib.Path(dir1)
+    if isinstance(dir2, str):
+        dir2 = pathlib.Path(dir2)
+    assert dir1.is_dir() and dir2.is_dir()
+
     difile = Difile()
     diff_files = difile.compare_dir(dir1, dir2)
 
@@ -60,7 +70,10 @@ def compare(dir1, dir2, coverage_xml=None) -> str:
     files = set()
     for each in diff_files:
         each_path = each[0].file_path
-        after = os.sep.join(each_path.parts[1:])
+        try:
+            after = each_path.relative_to(dir1).as_posix()
+        except ValueError:
+            after = each_path.relative_to(dir2).as_posix()
         files.add(after)
 
     # gen
@@ -70,7 +83,8 @@ def compare(dir1, dir2, coverage_xml=None) -> str:
         file1 = os.path.join(dir1, each)
         file2 = os.path.join(dir2, each)
         # special handle
-        with tempfile.NamedTemporaryFile() as f:
+        # i have to disable `delete` by default for some Windows issues
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             # file added
             if (not os.path.isfile(file1)) and os.path.isfile(file2):
                 snippet_content = file2snippet(f.name, file2, coverage_xml)
@@ -80,6 +94,9 @@ def compare(dir1, dir2, coverage_xml=None) -> str:
             # normal
             else:
                 snippet_content = file2snippet(file1, file2, coverage_xml)
+            # remove temp file by myself
+            f.close()
+            os.remove(f.name)
         snippets.append(Snippet(each, snippet_content))
 
     # render
