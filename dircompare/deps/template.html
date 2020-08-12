@@ -23,6 +23,7 @@
             overflow-x: hidden;
             transition: 0.5s;
             padding-top: 60px;
+            font-family: "Lato", sans-serif;
         }
 
         .sidebar a {
@@ -86,14 +87,14 @@
 <body>
 
 <div id="mySidebar" class="sidebar">
-    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">x</a>
     {% for item in files %}
     <a href="#" onclick="openTab(event, '{{ item.name }}')">{{ item.name }}</a>
     {% endfor %}
 </div>
 
 <div id="main">
-    <button class="openbtn" onclick="openNav()">= Open Sidebar</button>
+    <button class="openbtn" onclick="openNav()">=</button>
 
     {% for item in files %}
     <div id="{{ item.name }}" class="tabcontent">
