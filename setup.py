@@ -33,5 +33,6 @@ setup(
         "jinja2",
         "pygments",
         "mistune",
+        "diff_cover",
     ],
 )

@@ -26,15 +26,24 @@
 # SOFTWARE.
 
 import io
-import os
 import sys
 import difflib
 import pygments
+import functools
 from pygments.lexers import guess_lexer_for_filename
 from pygments.lexer import RegexLexer
 from pygments.formatters import HtmlFormatter
 from pygments.token import *
 from collections import namedtuple
+from diff_cover.violationsreporters.violations_reporter import XmlCoverageReporter
+from diff_cover.git_path import GitPathTool
+
+try:
+    # Needed for Python < 3.3, works up to 3.8
+    import xml.etree.cElementTree as etree
+except ImportError:
+    # Python 3.9 onwards
+    import xml.etree.ElementTree as etree
 
 # Monokai is not quite right yet
 PYGMENTS_STYLES = ["vs", "xcode"]
@@ -90,22 +99,18 @@ HTML_TEMPLATE = """
 """
 
 
-def coverage_xml_parse(xml_file_path, src_file_path):
-    from diff_cover.violationsreporters.violations_reporter import XmlCoverageReporter
-    from diff_cover.git_path import GitPathTool
-
-    try:
-        # Needed for Python < 3.3, works up to 3.8
-        import xml.etree.cElementTree as etree
-    except ImportError:
-        # Python 3.9 onwards
-        import xml.etree.ElementTree as etree
-
+@functools.lru_cache(None)
+def _read_xml(xml_path):
     GitPathTool.set_cwd(None)
-    xml_roots = [etree.parse(xml_root) for xml_root in [xml_file_path]]
-    coverage = XmlCoverageReporter(xml_roots, [os.path.dirname(src_file_path)])
-    coverage._cache_file(src_file_path)
-    return coverage._info_cache[src_file_path]
+    return [etree.parse(xml_root) for xml_root in [xml_path]]
+
+
+def coverage_xml_parse(xml_file_path, src_file_path, root):
+    xml_roots = _read_xml(xml_file_path)
+    coverage = XmlCoverageReporter(xml_roots, [root.as_posix(), ''])
+    rel_src_file_path = src_file_path.relative_to(root).as_posix()
+    coverage._cache_file(rel_src_file_path)
+    return coverage._info_cache[rel_src_file_path]
 
 
 coverage_line_list = None
@@ -151,7 +156,7 @@ class DiffHtmlFormatter(HtmlFormatter):
             # no coverage xml, do not draw
             # None and [] is different here
             # coverage will only make sense in right side
-            need_coverage_draw = bool(coverage_line_list is not None)
+            need_coverage_draw = bool(coverage_line_list and (coverage_line_list[1] is not None))
             coverage_class_miss = "lineno_coverage_miss"
             coverage_class_hit = "lineno_coverage_hit"
 
@@ -188,7 +193,7 @@ class DiffHtmlFormatter(HtmlFormatter):
                     content = right_line.strip()
                     if (not content) or content.startswith("#"):
                         pass
-                    elif right_no in coverage_line_list:
+                    elif (right_no in coverage_line_list[1]) and (right_no not in coverage_line_list[0]):
                         no = no.format(cov=coverage_class_hit)
                     else:
                         no = no.format(cov=coverage_class_miss)
@@ -410,11 +415,16 @@ class CodeDiff(object):
         fh.close()
 
 
-def file2snippet(file1, file2, cobertura_xml=None):
+def file2snippet(file1, file2, root_dir=None, cobertura_xml=None):
     if cobertura_xml:
-        r = coverage_xml_parse(cobertura_xml, file2)
+        r = coverage_xml_parse(cobertura_xml, file2, root_dir)
+        # it looks like:
+        # ({9, 11}, {2, 4, 5, 6, 9, 11})
+        # which means:
+        # - all lines: {2, 4, 5, 6, 9, 11}
+        # - missed: {9, 11}
         global coverage_line_list
-        coverage_line_list = r[1]
+        coverage_line_list = ({each.line for each in r[0]}, r[1])
 
     # options
     Options = namedtuple("options", ("coverage", "file1", "file2", "output_path", "print_width", "show", "syntax_css", "verbose"))

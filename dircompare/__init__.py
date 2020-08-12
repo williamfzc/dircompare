@@ -49,9 +49,12 @@ CODEFORMAT_CSS = DEP_DIR / "codeformats" / "xcode.css"
 # types
 TYPE_PATH = typing.Union[str, pathlib.Path]
 
+# charset
+CHARSET = "utf-8"
+
 
 def _load_template() -> Template:
-    with open(TEMPLATE_HTML, encoding="utf-8") as f:
+    with open(TEMPLATE_HTML, encoding=CHARSET) as f:
         content = f.read()
     return Template(content)
 
@@ -61,7 +64,12 @@ def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None) ->
         dir1 = pathlib.Path(dir1)
     if isinstance(dir2, str):
         dir2 = pathlib.Path(dir2)
+    dir1, dir2 = dir1.absolute(), dir2.absolute()
     assert dir1.is_dir() and dir2.is_dir()
+
+    if coverage_xml and isinstance(coverage_xml, str):
+        coverage_xml = pathlib.Path(coverage_xml).absolute()
+        assert coverage_xml.is_file()
 
     difile = Difile()
     diff_files = difile.compare_dir(dir1, dir2)
@@ -69,31 +77,33 @@ def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None) ->
     # prune
     files = set()
     for each in diff_files:
+        if not each:
+            continue
         each_path = each[0].file_path
         try:
-            after = each_path.relative_to(dir1).as_posix()
+            after = each_path.relative_to(dir1)
         except ValueError:
-            after = each_path.relative_to(dir2).as_posix()
+            after = each_path.relative_to(dir2)
         files.add(after)
 
     # gen
     snippets = []
     Snippet = namedtuple("Snippet", ("name", "content"))
     for each in files:
-        file1 = os.path.join(dir1, each)
-        file2 = os.path.join(dir2, each)
+        file1 = dir1 / each
+        file2 = dir2 / each
         # special handle
         # i have to disable `delete` by default for some Windows issues
         with tempfile.NamedTemporaryFile(delete=False) as f:
             # file added
-            if (not os.path.isfile(file1)) and os.path.isfile(file2):
-                snippet_content = file2snippet(f.name, file2, coverage_xml)
+            if (not file1.is_file()) and file2.is_file():
+                snippet_content = file2snippet(f.name, file2, dir2, coverage_xml)
             # file removed
-            elif os.path.isfile(file1) and (not os.path.isfile(file2)):
-                snippet_content = file2snippet(file1, f.name, coverage_xml)
+            elif file1.is_file() and (not file2.is_file()):
+                snippet_content = file2snippet(file1, f.name, dir2, coverage_xml)
             # normal
             else:
-                snippet_content = file2snippet(file1, file2, coverage_xml)
+                snippet_content = file2snippet(file1, file2, dir2, coverage_xml)
             # remove temp file by myself
             f.close()
             os.remove(f.name)
@@ -109,10 +119,7 @@ def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None) ->
         "reset_css": RESET_CSS,
         "codeformats_css": CODEFORMAT_CSS,
     }.items():
-        with open(v, encoding="utf-8") as f:
+        with open(v, encoding=CHARSET) as f:
             assets[k] = f.read()
 
-    return template.render(
-        files=snippets,
-        **assets,
-    )
+    return template.render(files=snippets, **assets,)
