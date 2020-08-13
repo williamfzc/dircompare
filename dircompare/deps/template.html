@@ -89,7 +89,7 @@
 <div id="mySidebar" class="sidebar">
     <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">x</a>
     {% for item in files %}
-    <a href="#" onclick="openTab(event, '{{ item.name }}')" class="sidebarItem" name="{{item.name}}">{{ item.name }}</a>
+    <a href="#" onclick="openTab(event, '{{ item.name }}')" class="sidebarItem" title="{{item.name}}">{{ item.name }}</a>
     {% endfor %}
 </div>
 
@@ -137,7 +137,7 @@
 
     var items = document.getElementsByClassName("sidebarItem");
     openNav()
-    openTab(event, items[0].name)
+    openTab(event, items[0].title)
 </script>
 <script src="https://code.jquery.com/jquery-1.11.0.min.js"
         integrity="sha256-spTpc4lvj4dOkKjrGokIrHkJgNA0xMS98Pw9N7ir9oI=" crossorigin="anonymous"></script>
