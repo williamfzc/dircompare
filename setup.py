@@ -1,13 +1,12 @@
 from setuptools import setup, find_packages
-from dircompare import (
-    __AUTHOR__,
-    __AUTHOR_EMAIL__,
-    __URL__,
-    __LICENSE__,
-    __VERSION__,
-    __PROJECT_NAME__,
-    __DESCRIPTION__,
-)
+
+__PROJECT_NAME__ = r"dircompare"
+__AUTHOR__ = r"williamfzc"
+__AUTHOR_EMAIL__ = r"fengzc@vip.qq.com"
+__LICENSE__ = r"MIT"
+__URL__ = r"https://github.com/williamfzc/dircompare"
+__VERSION__ = r"0.2.1"
+__DESCRIPTION__ = r"compare dir and generate a html report"
 
 setup(
     name=__PROJECT_NAME__,

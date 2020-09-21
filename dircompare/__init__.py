@@ -20,15 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__PROJECT_NAME__ = r"dircompare"
-__AUTHOR__ = r"williamfzc"
-__AUTHOR_EMAIL__ = r"fengzc@vip.qq.com"
-__LICENSE__ = r"MIT"
-__URL__ = r"https://github.com/williamfzc/dircompare"
-__VERSION__ = r"0.2.0"
-__DESCRIPTION__ = r"compare dir and generate a html report"
-
-
 from dircompare._d2hc import file2snippet
 from jinja2 import Template
 from difile import Difile
