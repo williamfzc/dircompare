@@ -31,7 +31,7 @@ setup(
     install_requires=[
         "difile",
         "jinja2",
-        "pygments",
+        "Pygments",
         "mistune",
         "diff_cover",
     ],
