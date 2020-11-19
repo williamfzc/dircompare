@@ -50,7 +50,9 @@ def _load_template() -> Template:
     return Template(content)
 
 
-def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None) -> str:
+def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None, line_filter: typing.Dict[str, list] = None) -> str:
+    if not line_filter:
+        line_filter = []
     if isinstance(dir1, str):
         dir1 = pathlib.Path(dir1)
     if isinstance(dir2, str):
@@ -83,18 +85,27 @@ def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None) ->
     for each in files:
         file1 = dir1 / each
         file2 = dir2 / each
+        # line filter
+        for each_f in line_filter:
+            if each.as_posix() in each_f:
+                # match
+                each_filter = line_filter[each_f]
+                break
+        else:
+            each_filter = None
+
         # special handle
         # i have to disable `delete` by default for some Windows issues
         with tempfile.NamedTemporaryFile(delete=False) as f:
             # file added
             if (not file1.is_file()) and file2.is_file():
-                snippet_content = file2snippet(f.name, file2, dir2, coverage_xml)
+                snippet_content = file2snippet(f.name, file2, dir2, coverage_xml, line_filter=each_filter)
             # file removed
             elif file1.is_file() and (not file2.is_file()):
-                snippet_content = file2snippet(file1, f.name, dir2, coverage_xml)
+                snippet_content = file2snippet(file1, f.name, dir2, coverage_xml, line_filter=each_filter)
             # normal
             else:
-                snippet_content = file2snippet(file1, file2, dir2, coverage_xml)
+                snippet_content = file2snippet(file1, file2, dir2, coverage_xml, line_filter=each_filter)
             # remove temp file by myself
             f.close()
             os.remove(f.name)

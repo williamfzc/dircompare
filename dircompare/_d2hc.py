@@ -140,9 +140,10 @@ class DiffHtmlFormatter(HtmlFormatter):
     isLeft = False
     diffs = None
 
-    def __init__(self, isLeft, diffs, *args, **kwargs):
+    def __init__(self, isLeft, diffs, line_filter=None, *args, **kwargs):
         self.isLeft = isLeft
         self.diffs = diffs
+        self.line_filter = line_filter
         super(DiffHtmlFormatter, self).__init__(*args, **kwargs)
 
     def wrap(self, source, outfile):
@@ -191,7 +192,10 @@ class DiffHtmlFormatter(HtmlFormatter):
                     # coverage line list will not contain empty lines
                     # and something like function signature
                     content = right_line.strip()
-                    if (not content) or content.startswith("#"):
+                    if (not content) or content.startswith("#") or content.startswith("//"):
+                        pass
+                    elif self.line_filter and (right_no not in self.line_filter):
+                        # ignore
                         pass
                     elif (right_no in coverage_line_list[1]) and (right_no not in coverage_line_list[0]):
                         no = no.format(cov=coverage_class_hit)
@@ -379,7 +383,9 @@ class CodeDiff(object):
                                      self.diffs,
                                      nobackground=False,
                                      linenos=True,
-                                     style=options.syntax_css)
+                                     style=options.syntax_css,
+                                     line_filter=options.line_filter,
+                                     )
 
             try:
                 self.lexer = guess_lexer_for_filename(self.filename, code)
@@ -415,7 +421,7 @@ class CodeDiff(object):
         fh.close()
 
 
-def file2snippet(file1, file2, root_dir=None, cobertura_xml=None):
+def file2snippet(file1, file2, root_dir=None, cobertura_xml=None, line_filter=None):
     if cobertura_xml:
         r = coverage_xml_parse(cobertura_xml, file2, root_dir)
         # it looks like:
@@ -427,7 +433,7 @@ def file2snippet(file1, file2, root_dir=None, cobertura_xml=None):
         coverage_line_list = ({each.line for each in r[0]}, r[1])
 
     # options
-    Options = namedtuple("options", ("coverage", "file1", "file2", "output_path", "print_width", "show", "syntax_css", "verbose"))
+    Options = namedtuple("options", ("coverage", "file1", "file2", "output_path", "print_width", "show", "syntax_css", "verbose", "line_filter"))
     options = Options(
         cobertura_xml,
         file1,
@@ -437,6 +443,7 @@ def file2snippet(file1, file2, root_dir=None, cobertura_xml=None):
         False,
         "vs",
         False,
+        line_filter,
     )
 
     codeDiff = CodeDiff(file1, file2, name=file2)
