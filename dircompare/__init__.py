@@ -87,7 +87,8 @@ def compare(dir1: TYPE_PATH, dir2: TYPE_PATH, coverage_xml: TYPE_PATH = None, li
         file2 = dir2 / each
         # line filter
         for each_f in line_filter:
-            if each.as_posix() in each_f:
+            each_p = each.as_posix()
+            if (each_p in each_f) or (each_f in each_p):
                 # match
                 each_filter = line_filter[each_f]
                 break
