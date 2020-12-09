@@ -30,6 +30,7 @@ import sys
 import difflib
 import pygments
 import functools
+import pathlib
 from pygments.lexers import guess_lexer_for_filename
 from pygments.lexer import RegexLexer
 from pygments.formatters import HtmlFormatter
@@ -106,6 +107,12 @@ def _read_xml(xml_path):
 
 
 def coverage_xml_parse(xml_file_path, src_file_path, root):
+    # type cast
+    if isinstance(src_file_path, str):
+        src_file_path = pathlib.Path(src_file_path)
+    if isinstance(root, str):
+        root = pathlib.Path(root)
+
     xml_roots = _read_xml(xml_file_path)
     coverage = XmlCoverageReporter(xml_roots, [root.as_posix(), ''])
     rel_src_file_path = src_file_path.relative_to(root).as_posix()
