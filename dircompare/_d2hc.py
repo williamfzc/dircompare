@@ -115,7 +115,11 @@ def coverage_xml_parse(xml_file_path, src_file_path, root):
 
     xml_roots = _read_xml(xml_file_path)
     coverage = XmlCoverageReporter(xml_roots, [root.as_posix(), ''])
-    rel_src_file_path = src_file_path.relative_to(root).as_posix()
+    try:
+        rel_src_file_path = src_file_path.relative_to(root).as_posix()
+    except ValueError:
+        # no rel src file found, skipped
+        return
     coverage._cache_file(rel_src_file_path)
     return coverage._info_cache[rel_src_file_path]
 
@@ -436,8 +440,9 @@ def file2snippet(file1, file2, root_dir=None, cobertura_xml=None, line_filter=No
         # which means:
         # - all lines: {2, 4, 5, 6, 9, 11}
         # - missed: {9, 11}
-        global coverage_line_list
-        coverage_line_list = ({each.line for each in r[0]}, r[1])
+        if r:
+            global coverage_line_list
+            coverage_line_list = ({each.line for each in r[0]}, r[1])
 
     # options
     Options = namedtuple("options", ("coverage", "file1", "file2", "output_path", "print_width", "show", "syntax_css", "verbose", "line_filter"))
